@@ -7,6 +7,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Branch, BranchSchema } from './schemas/branch.schema';
 import { UserModule } from './user/user.module';
 import { AdminModule } from './admin/admin.module';
+import { CategoryModule } from './category/category.module';
+import { session } from 'telegraf';
 
 @Module({
   imports: [
@@ -15,14 +17,16 @@ import { AdminModule } from './admin/admin.module';
       isGlobal: true
     }),
     TelegrafModule.forRoot({
-      token: process.env.BOT_TOKEN
+      token: process.env.BOT_TOKEN,
+      middlewares: [session()]
     }),
     MongooseModule.forRoot(process.env.DB_URI),
     MongooseModule.forFeature([
       { name: Branch.name, schema: BranchSchema }
     ]),
     UserModule,
-    AdminModule
+    AdminModule,
+    CategoryModule
   ],
   controllers: [AppController],
   providers: [AppService],

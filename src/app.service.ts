@@ -1,14 +1,15 @@
 import { InjectModel } from '@nestjs/mongoose';
 import { keyboards } from './enums/keyboard.enums';
 import { Update, Start, Ctx, Hears, On } from 'nestjs-telegraf';
-import { Context, Markup } from 'telegraf';
+import { Context, Markup, session } from 'telegraf';
 import { Branch } from './schemas/branch.schema';
 import { Model } from 'mongoose';
 import { getDistance } from './utils/get-distance.util';
 import { isAdmin } from './utils/is-admin.util';
 import { AdminService } from './admin/admin.service';
 import { UserService } from './user/user.service';
-
+import errorHandler from './decorators/errorHandler.decorator';
+@errorHandler
 @Update()
 export class AppService {
   constructor(
@@ -30,7 +31,7 @@ export class AppService {
     if (user) {
       ctx.telegram.sendMessage(ctx.chat.id, 'Xush kelibsiz', {
         reply_markup: {
-          remove_keyboatd: true,
+          remove_keyboard: true,
         },
       });
     } else {
@@ -47,7 +48,7 @@ export class AppService {
     const keyboard = Markup.keyboard([
       Markup.button.contactRequest(keyboards.contact),
     ])
-      .resize()
+      .resize() 
       .oneTime();
     ctx.reply(
       "Marhamat telefon raqamingizni yuborgan holatda ro'yxatdan o'ting",
@@ -130,5 +131,8 @@ export class AppService {
   @On('message')
   message(@Ctx() ctx: any) {
     console.log(ctx.update.message.from);
+    ctx.session.id = 1
+    console.log(ctx.session);
+    
   }
 }
