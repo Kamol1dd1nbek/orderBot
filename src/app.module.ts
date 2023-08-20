@@ -5,6 +5,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Branch, BranchSchema } from './schemas/branch.schema';
+import { UserModule } from './user/user.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { Branch, BranchSchema } from './schemas/branch.schema';
     MongooseModule.forRoot(process.env.DB_URI),
     MongooseModule.forFeature([
       { name: Branch.name, schema: BranchSchema }
-    ])
+    ]),
+    UserModule,
+    AdminModule
   ],
   controllers: [AppController],
   providers: [AppService],

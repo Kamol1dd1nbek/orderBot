@@ -105,4 +105,9 @@ export class AppService {
       console.log(error);
     }
   }
+
+  @On("message")
+  message(@Ctx() ctx: any) {
+    console.log(ctx.update.message.from)
+  }
 }
