@@ -7,26 +7,38 @@ import { Model } from 'mongoose';
 import { getDistance } from './utils/get-distance.util';
 import { isAdmin } from './utils/is-admin.util';
 import { AdminService } from './admin/admin.service';
+import { UserService } from './user/user.service';
 
 @Update()
 export class AppService {
   constructor(
     @InjectModel(Branch.name) private readonly branchModel: Model<Branch>,
-    private readonly adminService: AdminService
+    private readonly adminService: AdminService,
+    private readonly userService: UserService,
   ) {}
 
   //START
   @Start()
-  start(@Ctx() ctx: any) {
-    const id = ctx.update.message.from.id;
-    
-    if (isAdmin(id+'')) {
+  async start(@Ctx() ctx: any) {
+    const id = ctx.update.message.from.id + '';
+
+    if (isAdmin(id)) {
       return this.adminService.start(ctx);
     }
-    const keyboard = Markup.keyboard([keyboards.register, keyboards.support])
-      .resize()
-      .oneTime();
-    ctx.reply('salom', keyboard);
+
+    const user = await this.userService.findOne(id);
+    if (user) {
+      ctx.telegram.sendMessage(ctx.chat.id, 'Xush kelibsiz', {
+        reply_markup: {
+          remove_keyboatd: true,
+        },
+      });
+    } else {
+      const keyboard = Markup.keyboard([keyboards.register, keyboards.support])
+        .resize()
+        .oneTime();
+      ctx.reply('Xush kelibsiz', keyboard);
+    }
   }
 
   //REGISTER
@@ -38,7 +50,7 @@ export class AppService {
       .resize()
       .oneTime();
     ctx.reply(
-      "Marhamat telefon raqamingizni yuborgan holatda ro'yhatdan o'ting",
+      "Marhamat telefon raqamingizni yuborgan holatda ro'yxatdan o'ting",
       keyboard,
     );
   }
@@ -51,19 +63,20 @@ export class AppService {
 
   //ON CONTACT
   @On('contact')
-  contact(@Ctx() ctx: any) {
-    console.log(ctx);
-
+  async contact(@Ctx() ctx: any) {
     const phoneNumber = ctx.update.message.contact.phone_number;
+    
     // save to DB
-
-    const keyboard = Markup.keyboard([
-      Markup.button.locationRequest(keyboards.location),
-    ])
-      .resize()
-      .oneTime();
-
-    ctx.reply('Endi joylashuvingizni yuboring', keyboard);
+    const user = ctx.update.message.from;
+    const newUser = await this.userService.create({
+      tg_id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      phone_number: phoneNumber,
+      is_bot: user.is_bot,
+      username: user.username
+    })
+    ctx.reply("Tabriklayman, muvaffaqiyatli ro'yxatdan o'tdingiz");
   }
 
   //ON LOCATION
@@ -114,8 +127,8 @@ export class AppService {
     }
   }
 
-  @On("message")
+  @On('message')
   message(@Ctx() ctx: any) {
-    console.log(ctx.update.message.from)
+    console.log(ctx.update.message.from);
   }
 }

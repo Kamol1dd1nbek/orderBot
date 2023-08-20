@@ -10,7 +10,7 @@ export class UserService {
   constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {}
 
   create(createUserDto: CreateUserDto) {
-    return this.create(createUserDto);
+    return this.userModel.create(createUserDto);
   }
 
   findAll() {
@@ -18,6 +18,6 @@ export class UserService {
   }
 
   findOne(id: string) {
-    return this.userModel.find({tg_id: id});
+    return this.userModel.findOne({tg_id: id});
   }
 }
