@@ -5,16 +5,24 @@ import { Context, Markup } from 'telegraf';
 import { Branch } from './schemas/branch.schema';
 import { Model } from 'mongoose';
 import { getDistance } from './utils/get-distance.util';
+import { isAdmin } from './utils/is-admin.util';
+import { AdminService } from './admin/admin.service';
 
 @Update()
 export class AppService {
   constructor(
     @InjectModel(Branch.name) private readonly branchModel: Model<Branch>,
+    private readonly adminService: AdminService
   ) {}
 
   //START
   @Start()
-  start(@Ctx() ctx: Context) {
+  start(@Ctx() ctx: any) {
+    const id = ctx.update.message.from.id;
+    
+    if (isAdmin(id+'')) {
+      return this.adminService.start(ctx);
+    }
     const keyboard = Markup.keyboard([keyboards.register, keyboards.support])
       .resize()
       .oneTime();
