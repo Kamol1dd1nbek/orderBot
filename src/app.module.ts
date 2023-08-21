@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { AdminModule } from './admin/admin.module';
 import { CategoryModule } from './category/category.module';
 import { session } from 'telegraf';
+import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { session } from 'telegraf';
     ]),
     UserModule,
     AdminModule,
-    CategoryModule
+    CategoryModule,
+    ProductModule
   ],
   controllers: [AppController],
   providers: [AppService],

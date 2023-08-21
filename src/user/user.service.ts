@@ -18,6 +18,11 @@ export class UserService {
   }
 
   findOne(id: string) {
-    return this.userModel.findOne({tg_id: id});
+    return this.userModel.findOne({tg_id: id}).exec();
+  }
+
+  async getId(id: string) {
+   const user = await this.userModel.findOne({tg_id: id});
+   return user._id;
   }
 }

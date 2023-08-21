@@ -1,5 +1,5 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { keyboards } from './enums/keyboard.enums';
+import { keyboards, main } from './enums/keyboard.enums';
 import { Update, Start, Ctx, Hears, On } from 'nestjs-telegraf';
 import { Context, Markup, session } from 'telegraf';
 import { Branch } from './schemas/branch.schema';
@@ -69,15 +69,17 @@ export class AppService {
     
     // save to DB
     const user = ctx.update.message.from;
-    const newUser = await this.userService.create({
-      tg_id: user.id,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      phone_number: phoneNumber,
-      is_bot: user.is_bot,
-      username: user.username
-    })
-    ctx.reply("Tabriklayman, muvaffaqiyatli ro'yxatdan o'tdingiz");
+    // const newUser = await this.userService.create({
+    //   tg_id: user.id,
+    //   first_name: user.first_name,
+    //   last_name: user.last_name,
+    //   phone_number: phoneNumber,
+    //   is_bot: user.is_bot,
+    //   username: user.username
+    // });
+
+    const mainButtons = Markup.keyboard([[main.home, main.search, main.add, main.like, main.cart]]).resize();
+    ctx.reply("Tabriklayman, muvaffaqiyatli ro'yxatdan o'tdingiz", mainButtons);
   }
 
   //ON LOCATION
@@ -128,11 +130,17 @@ export class AppService {
     }
   }
 
+  @Hears(keyboards.addProduct)
+  addProduct(@Ctx() ctx: any){
+    if ( isAdmin(ctx.from.id + "") ) {
+      return this.adminService.addProduct(ctx);
+    }
+  }
+
   @On('message')
   message(@Ctx() ctx: any) {
-    console.log(ctx.update.message.from);
-    ctx.session.id = 1
-    console.log(ctx.session);
-    
-  }
+    if ( isAdmin(ctx.from.id + "") ) {
+      return this.adminService.message(ctx);
+    }
+  } 
 }
