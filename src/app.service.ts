@@ -10,6 +10,7 @@ import { AdminService } from './admin/admin.service';
 import { UserService } from './user/user.service';
 import errorHandler from './decorators/errorHandler.decorator';
 import { actions } from './enums/menus.enum';
+import { deletter } from './helpers/messageDeletter.helper';
 @errorHandler
 @Update()
 export class AppService {
@@ -97,6 +98,7 @@ Please select a language:
       last_name: user.last_name,
       phone_number: phoneNumber,
       is_bot: user.is_bot,
+      phone: phoneNumber,
       username: user.username,
     });
 
@@ -156,36 +158,35 @@ Please select a language:
     }
   }
 
-  @Hears(keyboards.addProduct)
+
+  @Hears(main.add)
   addProduct(@Ctx() ctx: any) {
+    const isOwn = ctx.message.forward_from ? false : true;
+    if ( !isOwn ) {
+      deletter(ctx);
+      return;
+    }
+
     if (isAdmin(ctx.from.id + '')) {
       return this.adminService.addProduct(ctx);
     }
+    
   }
   
   @Hears(keyboards.support)
   sendQuestion(@Ctx() ctx: any) {
-    ctx.session.action = actions.sendQuestion;
+    ctx.session.action = actions.sendQuestion; 
     ctx.reply(asistants.beforeQuestion[ctx.session.language], {
       reply_markup: { remove_keyboard: true }
     });
-    console.log("mana",ctx.session.actions);
     
   }
 
   @On('message')
   async message(@Ctx() ctx: any) {
-    console.log(ctx.session.user);
-
-    // if (isAdmin(ctx.from.id + '')) {
-    //   return this.adminService.message(ctx);
-    // }
-
-    console.log(ctx.message.chat.id);
     let message;
 
-    switch (ctx.session.action) {
-      case actions.set_language:
+    if ( ctx.session.action === actions.set_language ) {
         message = ctx.message.text ? ctx.message.text : null;
         if (message === null) {
           ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
@@ -207,7 +208,13 @@ Please select a language:
           default:
             ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
         }
-        return;
+    }
+
+    if (isAdmin(ctx.from.id + '')) {
+      return this.adminService.message(ctx);
+    }
+
+    switch (ctx.session.action) {
       case actions.registerOrSuppot:
         message = ctx.message.text ? ctx.message.text : null;
         if (
@@ -241,3 +248,4 @@ Please select a language:
     }
   } 
 }
+451556

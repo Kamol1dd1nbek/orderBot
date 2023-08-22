@@ -1,66 +1,76 @@
+import { languages } from './../enums/keyboard.enums';
+
 import { menus } from './../enums/menus.enum';
 import { Injectable } from '@nestjs/common';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { Context, Markup, session } from 'telegraf';
-import { keyboards } from '../enums/keyboard.enums';
+import { addProduct_lan, admin_asistants, keyboards, main } from '../enums/keyboard.enums';
 import { ProductService } from '../product/product.service';
 import { UserService } from '../user/user.service';
+import { deletter } from '../helpers/messageDeletter.helper';
+import { productMaker } from '../helpers/productMaker.helper';
 
 @Injectable()
 export class AdminService {
   constructor( private readonly productService: ProductService,
     private readonly userService: UserService) {}
-  start(ctx: Context) {
-    const keyboard = Markup.keyboard([keyboards.addProduct]).resize();
-    ctx.reply('Assalomu aleykum admin', keyboard);
+  start(ctx: any) {
+    const keyboard = Markup.keyboard([[main.home, main.search, main.add, main.question, main.hamburger]]).resize();
+    ctx.reply(admin_asistants.salomWithAdmin[ctx.session.language], keyboard);
+    deletter(ctx);
   }
 
   addProduct(ctx: any) {
     ctx.session.menu = menus.addTitle;
-    ctx.reply('Marhamat nomini kiriting: ');
+    ctx.reply(addProduct_lan.name[ctx.session.language]);
+    deletter(ctx);
   }
 
   async message(ctx: any) {
-    
     const message = ctx.message.text;
-    switch (ctx.session.menu) {
 
+    switch (ctx.session.menu) {
       case menus.addTitle:
         ctx.session.product = {
           name: message,
         };
         ctx.session.menu = menus.addDescription;
-        ctx.reply('Marhamat izoh kiriting');
+        ctx.reply(addProduct_lan.description[ctx.session.language]);
         return;
 
       case menus.addDescription:
         ctx.session.product.description = message;
         ctx.session.menu = menus.addPhoto;
-        ctx.reply('Marhamat mahsulot rasmini yuboring');
+        ctx.reply(addProduct_lan.photo[0][ctx.session.language]);
         return;
-
+ 
       case menus.addPhoto:        
         if ( !ctx.message?.photo) {
-          ctx.reply("Men sizdan rasm faylini kutayapman");
+          ctx.reply(addProduct_lan.photo[1][ctx.session.language]);
           return;
         }
         ctx.session.product.photo_id = ctx.message.photo[ctx.message.photo.length - 1].file_id;
         ctx.session.menu = menus.addPrice;
-        ctx.reply('Marhamat mahsulot narxini yuboring');
+        ctx.reply(addProduct_lan.price[ctx.session.language]);
         return;
 
       case menus.addPrice:
         ctx.session.menu = null;
         ctx.session.product.price = message;
-        console.log(ctx.session.product);
-        ctx.reply('Muvaffaqiyatli qo\'shildi');
+        ctx.reply(addProduct_lan.ok[ctx.session.language]);
         
-        const userId = await this.userService.getId(ctx.message.from.id + "");
-        ctx.session.product.author_id = userId;
+        const user = await this.userService.findOne(ctx.message.from.id + "");
+        ctx.session.product.author = user;
+        console.log(ctx.session.product.author);
+        
 
-        await this.productService.create(ctx.session.product)
-        
+        const addedProduct = await this.productService.create(ctx.session.product);
+        const data = {
+          ...ctx.session.product,
+          ...ctx.session.product.author
+        }
+        productMaker(ctx, data, 0);
     }
   }
 } 

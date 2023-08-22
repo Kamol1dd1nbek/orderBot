@@ -33,6 +33,12 @@ export class User {
         required: true
     })
     is_bot: boolean;
+
+    @Prop({
+        type: String,
+        required: true
+    })
+    phone: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
