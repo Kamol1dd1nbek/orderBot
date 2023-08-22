@@ -1,5 +1,5 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { keyboards, main } from './enums/keyboard.enums';
+import { asistants, keyboards, languages, main } from './enums/keyboard.enums';
 import { Update, Start, Ctx, Hears, On } from 'nestjs-telegraf';
 import { Context, Markup, session } from 'telegraf';
 import { Branch } from './schemas/branch.schema';
@@ -9,6 +9,7 @@ import { isAdmin } from './utils/is-admin.util';
 import { AdminService } from './admin/admin.service';
 import { UserService } from './user/user.service';
 import errorHandler from './decorators/errorHandler.decorator';
+import { actions } from './enums/menus.enum';
 @errorHandler
 @Update()
 export class AppService {
@@ -21,65 +22,90 @@ export class AppService {
   //START
   @Start()
   async start(@Ctx() ctx: any) {
-    const id = ctx.update.message.from.id + '';
+    ctx.session.action = actions.set_language;
+    const salomlashish = `
+🇺🇿 Assalomu aleykum, Men Insonlar o'rtasida mahsulotlarni oson sotish va sotib olishga yordamlashuvchi botman!
+Iltimos tilni tanlang:
 
+🇺🇸 Hello, I'm a bot that helps people buy and sell products easily!
+Please select a language:
+
+🇷🇺 Привет, я бот, который помогает людям легко покупать и продавать товары!
+Выберите язык:
+    `;
+    const languagesButton = Markup.keyboard([
+      languages.uz,
+      languages.en,
+      languages.ru,
+    ])
+      .resize()
+      .oneTime();
+    ctx.reply(salomlashish, languagesButton);
+  }
+
+  async authorization(ctx: any) {
+    const id = ctx.update.message.from.id + '';
     if (isAdmin(id)) {
       return this.adminService.start(ctx);
     }
-
-    const user = await this.userService.findOne(id);
-    if (user) {
-      ctx.telegram.sendMessage(ctx.chat.id, 'Xush kelibsiz', {
-        reply_markup: {
-          remove_keyboard: true,
-        },
-      });
+    const mainButtons = Markup.keyboard([
+      [main.home, main.search, main.add, main.like, main.cart],
+    ]).resize();
+    if (ctx.session.user) {
+      ctx.telegram.sendMessage(
+        ctx.chat.id,
+        asistants.welcome[ctx.session.language], mainButtons);
     } else {
-      const keyboard = Markup.keyboard([keyboards.register, keyboards.support])
-        .resize()
-        .oneTime();
-      ctx.reply('Xush kelibsiz', keyboard);
+      const user = await this.userService.findOne(id);
+      if (user) {
+        ctx.telegram.sendMessage(
+          ctx.chat.id,
+          asistants.welcome[ctx.session.language], mainButtons);
+      } else {
+        const keyboard = Markup.keyboard([ 
+          keyboards.register[ctx.session.language],
+          keyboards.support[ctx.session.language],
+        ])
+          .resize()
+          .oneTime();
+        ctx.reply(asistants.welcome[ctx.session.language], keyboard);
+        ctx.session.action = actions.registerOrSuppot;
+      }
     }
   }
 
   //REGISTER
   @Hears(keyboards.register)
-  register(@Ctx() ctx: Context) {
+  register(@Ctx() ctx: any) {
     const keyboard = Markup.keyboard([
-      Markup.button.contactRequest(keyboards.contact),
+      Markup.button.contactRequest(keyboards.contact[ctx.session.language]),
     ])
-      .resize() 
+      .resize()
       .oneTime();
-    ctx.reply(
-      "Marhamat telefon raqamingizni yuborgan holatda ro'yxatdan o'ting",
-      keyboard,
-    );
-  }
-
-  //SUPPORT
-  @Hears(keyboards.support)
-  support(@Ctx() ctx: Context) {
-    ctx.reply('Savolingizni yuboring');
+    ctx.session.action = actions.sendContact;
+    ctx.reply(asistants.toPhoneNumber[ctx.session.language], keyboard);
   }
 
   //ON CONTACT
   @On('contact')
   async contact(@Ctx() ctx: any) {
     const phoneNumber = ctx.update.message.contact.phone_number;
-    
-    // save to DB
     const user = ctx.update.message.from;
-    // const newUser = await this.userService.create({
-    //   tg_id: user.id,
-    //   first_name: user.first_name,
-    //   last_name: user.last_name,
-    //   phone_number: phoneNumber,
-    //   is_bot: user.is_bot,
-    //   username: user.username
-    // });
+    const newUser = await this.userService.create({
+      tg_id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      phone_number: phoneNumber,
+      is_bot: user.is_bot,
+      username: user.username,
+    });
 
-    const mainButtons = Markup.keyboard([[main.home, main.search, main.add, main.like, main.cart]]).resize();
-    ctx.reply("Tabriklayman, muvaffaqiyatli ro'yxatdan o'tdingiz", mainButtons);
+    const mainButtons = Markup.keyboard([
+      [main.home, main.search, main.add, main.like, main.cart],
+    ]).resize();
+    ctx.reply(asistants.tabrikForLogin[ctx.session.language], mainButtons);
+    ctx.session.action = actions.free;
+    ctx.session.user = newUser;
   }
 
   //ON LOCATION
@@ -131,16 +157,87 @@ export class AppService {
   }
 
   @Hears(keyboards.addProduct)
-  addProduct(@Ctx() ctx: any){
-    if ( isAdmin(ctx.from.id + "") ) {
+  addProduct(@Ctx() ctx: any) {
+    if (isAdmin(ctx.from.id + '')) {
       return this.adminService.addProduct(ctx);
     }
   }
+  
+  @Hears(keyboards.support)
+  sendQuestion(@Ctx() ctx: any) {
+    ctx.session.action = actions.sendQuestion;
+    ctx.reply(asistants.beforeQuestion[ctx.session.language], {
+      reply_markup: { remove_keyboard: true }
+    });
+    console.log("mana",ctx.session.actions);
+    
+  }
 
   @On('message')
-  message(@Ctx() ctx: any) {
-    if ( isAdmin(ctx.from.id + "") ) {
-      return this.adminService.message(ctx);
+  async message(@Ctx() ctx: any) {
+    console.log(ctx.session.user);
+
+    // if (isAdmin(ctx.from.id + '')) {
+    //   return this.adminService.message(ctx);
+    // }
+
+    console.log(ctx.message.chat.id);
+    let message;
+
+    switch (ctx.session.action) {
+      case actions.set_language:
+        message = ctx.message.text ? ctx.message.text : null;
+        if (message === null) {
+          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+          return;
+        }
+        switch (message) {
+          case languages.uz:
+            ctx.session.language = 0;
+            ctx.session.action = actions.authorization;
+            return this.authorization(ctx);
+          case languages.en:
+            ctx.session.language = 1;
+            ctx.session.action = actions.authorization;
+            return this.authorization(ctx);
+          case languages.ru:
+            ctx.session.language = 2;
+            ctx.session.action = actions.authorization;
+            return this.authorization(ctx);
+          default:
+            ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+        }
+        return;
+      case actions.registerOrSuppot:
+        message = ctx.message.text ? ctx.message.text : null;
+        if (
+          message === null ||
+          message !== keyboards.register[ctx.session.language] ||
+          message !== keyboards.register[ctx.session.language]
+        ) {
+          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+        }
+        return;
+      case actions.sendContact:
+        message = ctx.message.contact ? ctx.message.contact : null;
+        if (message === null) {
+          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+        }
+        return;
+      case actions.sendQuestion:
+        message = ctx.message.text ? ctx.message.text : null;
+        if (message === null) {
+          console.log(2);
+          
+          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+        } else {
+          console.log(1);
+      
+          ctx.session.action = actions.free;
+          ctx.telegram.forwardMessage(process.env.ADMIN_ID_1, ctx.message.chat.id, ctx.message.message_id);
+          // admin ga kelgan savollarni db saqlash admin savollar bolimiga o'tganida db dan olib keliw kk kn javob yoziwi kk .....
+        }
+      //   return;
     }
   } 
 }

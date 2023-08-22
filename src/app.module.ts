@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
@@ -30,7 +29,6 @@ import { ProductModule } from './product/product.module';
     CategoryModule,
     ProductModule
   ],
-  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
