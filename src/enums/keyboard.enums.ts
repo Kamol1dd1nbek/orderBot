@@ -6,6 +6,11 @@ export const keyboards = {
     buyProduct: ["💸 Mahsulot sotib olish", "💸 Product purchase", "💸 Покупка товара"]
 }
 
+export enum roles {
+    user,
+    admin
+}
+
 export const admin_keyboards = {
     savollar: [""]
 }

@@ -29,8 +29,9 @@ export default function errorHandler<T extends { new (...args: any[]): {} }>(
                     ctx.message.message_id,
                   );
                 })
-                .catch(() => {
+                .catch((error) => {
                   console.log("Error: Can''t report to admin", error.message);
+                  console.log(error);
                 });
             }
           };

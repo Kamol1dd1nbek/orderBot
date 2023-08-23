@@ -9,7 +9,7 @@ import { isAdmin } from './utils/is-admin.util';
 import { AdminService } from './admin/admin.service';
 import { UserService } from './user/user.service';
 import errorHandler from './decorators/errorHandler.decorator';
-import { actions } from './enums/menus.enum';
+import { actions, menus } from './enums/menus.enum';
 import { deletter } from './helpers/messageDeletter.helper';
 @errorHandler
 @Update()
@@ -24,6 +24,7 @@ export class AppService {
   @Start()
   async start(@Ctx() ctx: any) {
     ctx.session.action = actions.set_language;
+    ctx.session.menu = null;
     const salomlashish = `
 🇺🇿 Assalomu aleykum, Men Insonlar o'rtasida mahsulotlarni oson sotish va sotib olishga yordamlashuvchi botman!
 Iltimos tilni tanlang:
@@ -38,39 +39,43 @@ Please select a language:
       languages.uz,
       languages.en,
       languages.ru,
-    ])
-      .resize()
-      .oneTime();
+    ]).resize();
+    ctx.session.action = actions.set_language;
     ctx.reply(salomlashish, languagesButton);
   }
 
   async authorization(ctx: any) {
+    console.log(ctx.session.user);
     const id = ctx.update.message.from.id + '';
-    if (isAdmin(id)) {
-      return this.adminService.start(ctx);
-    }
     const mainButtons = Markup.keyboard([
       [main.home, main.search, main.add, main.like, main.cart],
     ]).resize();
     if (ctx.session.user) {
       ctx.telegram.sendMessage(
         ctx.chat.id,
-        asistants.welcome[ctx.session.language], mainButtons);
+        asistants.welcome[ctx.session.language],
+        mainButtons,
+      );
     } else {
       const user = await this.userService.findOne(id);
+      console.log('lan', ctx.session.language);
       if (user) {
+        ctx.session.user = user;
         ctx.telegram.sendMessage(
           ctx.chat.id,
-          asistants.welcome[ctx.session.language], mainButtons);
+          asistants.welcome[ctx.session.language],
+          mainButtons,
+        );
       } else {
-        const keyboard = Markup.keyboard([ 
+        console.log(2);
+        const keyboard = Markup.keyboard([
           keyboards.register[ctx.session.language],
           keyboards.support[ctx.session.language],
         ])
           .resize()
           .oneTime();
-        ctx.reply(asistants.welcome[ctx.session.language], keyboard);
         ctx.session.action = actions.registerOrSuppot;
+        ctx.reply(asistants.welcome[ctx.session.language], keyboard);
       }
     }
   }
@@ -105,6 +110,10 @@ Please select a language:
     const mainButtons = Markup.keyboard([
       [main.home, main.search, main.add, main.like, main.cart],
     ]).resize();
+
+    if (isAdmin(user.id)) {
+      return this.adminService.start(ctx);
+    }
     ctx.reply(asistants.tabrikForLogin[ctx.session.language], mainButtons);
     ctx.session.action = actions.free;
     ctx.session.user = newUser;
@@ -157,61 +166,66 @@ Please select a language:
       console.log(error);
     }
   }
-
-
+  
   @Hears(main.add)
   addProduct(@Ctx() ctx: any) {
+    
     const isOwn = ctx.message.forward_from ? false : true;
-    if ( !isOwn ) {
+    if (!isOwn) {
       deletter(ctx);
       return;
     }
-
-    if (isAdmin(ctx.from.id + '')) {
-      return this.adminService.addProduct(ctx);
-    }
-    
+    return this.adminService.addProduct(ctx);
   }
-  
+
   @Hears(keyboards.support)
   sendQuestion(@Ctx() ctx: any) {
-    ctx.session.action = actions.sendQuestion; 
+    ctx.session.action = actions.sendQuestion;
     ctx.reply(asistants.beforeQuestion[ctx.session.language], {
-      reply_markup: { remove_keyboard: true }
+      reply_markup: { remove_keyboard: true },
     });
-    
   }
+
+
 
   @On('message')
   async message(@Ctx() ctx: any) {
+
     let message;
-
-    if ( ctx.session.action === actions.set_language ) {
-        message = ctx.message.text ? ctx.message.text : null;
-        if (message === null) {
-          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-          return;
-        }
-        switch (message) {
-          case languages.uz:
-            ctx.session.language = 0;
-            ctx.session.action = actions.authorization;
-            return this.authorization(ctx);
-          case languages.en:
-            ctx.session.language = 1;
-            ctx.session.action = actions.authorization;
-            return this.authorization(ctx);
-          case languages.ru:
-            ctx.session.language = 2;
-            ctx.session.action = actions.authorization;
-            return this.authorization(ctx);
-          default:
-            ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-        }
-    }
-
-    if (isAdmin(ctx.from.id + '')) {
+    if (
+      ctx.session.menu === menus.addTitle ||
+      ctx.session.menu === menus.addDescription ||
+      ctx.session.menu === menus.addPhoto ||
+      ctx.session.menu === menus.addPrice
+    ) {
       return this.adminService.message(ctx);
+    }
+    if (ctx.session.action === actions.set_language) {
+      message = ctx.message.text ? ctx.message.text : null;
+      if (message === null) {
+        ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+        return;
+      }
+      switch (message) {
+        case languages.uz:
+          ctx.session.language = 0;
+          ctx.session.action = actions.authorization;
+          return this.authorization(ctx);
+        case languages.en:
+          ctx.session.language = 1;
+          ctx.session.action = actions.authorization;
+          return this.authorization(ctx);
+        case languages.ru:
+          ctx.session.language = 2;
+          ctx.session.action = actions.authorization;
+          return this.authorization(ctx);
+        default:
+          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+      }
+    }
+    if (!ctx.session.user && ctx.session.action !== actions.registerOrSuppot) {
+      ctx.session.action = actions.authorization;
+      ctx.session.menu = null;
     }
 
     switch (ctx.session.action) {
@@ -234,18 +248,22 @@ Please select a language:
       case actions.sendQuestion:
         message = ctx.message.text ? ctx.message.text : null;
         if (message === null) {
-          console.log(2);
-          
+
           ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
         } else {
-          console.log(1);
-      
+
           ctx.session.action = actions.free;
-          ctx.telegram.forwardMessage(process.env.ADMIN_ID_1, ctx.message.chat.id, ctx.message.message_id);
+          ctx.telegram.forwardMessage(
+            process.env.ADMIN_ID_1,
+            ctx.message.chat.id,
+            ctx.message.message_id,
+          );
           // admin ga kelgan savollarni db saqlash admin savollar bolimiga o'tganida db dan olib keliw kk kn javob yoziwi kk .....
         }
-      //   return;
     }
-  } 
+
+    if (isAdmin(ctx.from.id + '')) {
+      return this.adminService.message(ctx);
+    }
+  }
 }
-451556

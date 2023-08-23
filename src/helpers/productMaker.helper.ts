@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 
 export function productMaker(ctx: Context ,data: {
   name: string;
@@ -14,10 +14,10 @@ export function productMaker(ctx: Context ,data: {
   };
 }, type: number) {
     // console.log(data);
-    
-  const payload = 
-`
-    Name:           ${data.name},
+    const keyboard = Markup.inlineKeyboard([{text: "Confirm", callback_data: "create_ok"}, {text: "Cancel", callback_data: "create_no"}]);
+    const payload = 
+
+`    Name:              ${data.name},
     
     Description:    ${data.description || "*********"},
 
@@ -28,13 +28,14 @@ export function productMaker(ctx: Context ,data: {
     Contact:        ${data.author.phone}
 `;
 
-    if ( type ) {
+    if ( type ) { 
         ctx.telegram.sendPhoto(ctx.chat.id, data.photo_id, {
             caption: payload
         });
     } else {
         ctx.telegram.sendPhoto(ctx.chat.id, data.photo_id, {
-            caption: payload
+            caption: payload,
+            reply_markup: keyboard.reply_markup
         });
     }
 

@@ -18,7 +18,7 @@ import { ProductModule } from './product/product.module';
     }),
     TelegrafModule.forRoot({
       token: process.env.BOT_TOKEN,
-      middlewares: [session()]
+      middlewares: [session()],
     }),
     MongooseModule.forRoot(process.env.DB_URI),
     MongooseModule.forFeature([

@@ -21,10 +21,11 @@ export class AdminService {
     deletter(ctx);
   }
 
-  addProduct(ctx: any) {
+  async addProduct(ctx: any) { //xato wotta ekan
     ctx.session.menu = menus.addTitle;
-    ctx.reply(addProduct_lan.name[ctx.session.language]);
     deletter(ctx);
+    if ( ctx.session.language)
+    ctx.reply(addProduct_lan.name[ctx.session.language]);
   }
 
   async message(ctx: any) {
@@ -58,19 +59,18 @@ export class AdminService {
       case menus.addPrice:
         ctx.session.menu = null;
         ctx.session.product.price = message;
+        console.log(ctx.session.product);
         ctx.reply(addProduct_lan.ok[ctx.session.language]);
         
         const user = await this.userService.findOne(ctx.message.from.id + "");
         ctx.session.product.author = user;
-        console.log(ctx.session.product.author);
-        
 
         const addedProduct = await this.productService.create(ctx.session.product);
         const data = {
           ...ctx.session.product,
           ...ctx.session.product.author
         }
-        productMaker(ctx, data, 0);
+        productMaker(ctx, data, 0)
     }
   }
 } 
