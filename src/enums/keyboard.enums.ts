@@ -22,6 +22,7 @@ export const main = {
     like: "❤️",
     question: "❓",
     cart: "🛒",
+    log: "📜",
     hamburger: "🍔"
 }
 

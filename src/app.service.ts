@@ -23,6 +23,9 @@ export class AppService {
   //START
   @Start()
   async start(@Ctx() ctx: any) {
+    console.log(); 
+    await ctx.telegram.pinChatMessage(ctx.chat.id, ctx.message.message_id)
+
     ctx.session.action = actions.set_language;
     ctx.session.menu = null;
     const salomlashish = `
@@ -223,10 +226,10 @@ Please select a language:
           ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
       }
     }
-    if (!ctx.session.user && ctx.session.action !== actions.registerOrSuppot) {
-      ctx.session.action = actions.authorization;
-      ctx.session.menu = null;
-    }
+    // if (!ctx.session.user) {
+    //   // ctx.session.action = actions.authorization;
+    //   ctx.session.menu = null;
+    // }
 
     switch (ctx.session.action) {
       case actions.registerOrSuppot:

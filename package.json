@@ -26,6 +26,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/mongoose": "^10.0.1",
     "@nestjs/platform-express": "^10.0.0",
+    "dedent-js": "^1.0.1",
     "mongoose": "^7.4.3",
     "nestjs-telegraf": "^2.7.0",
     "reflect-metadata": "^0.1.13",
