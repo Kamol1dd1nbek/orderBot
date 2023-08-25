@@ -19,7 +19,6 @@ export const main = {
     home: "🏠",
     search: "🔍",
     add: "➕",
-    like: "❤️",
     question: "❓",
     cart: "🛒",
     log: "📜",

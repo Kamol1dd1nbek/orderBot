@@ -9,8 +9,16 @@ export const actions = {
     start: "ENTER_START",
     set_language: "CHOOSE_LANGUAGE",
     authorization: "AUTHORIZATION",
-    registerOrSuppot: "REGISTER_OR_SUPPORT",
+    register: "REGISTER",
     sendQuestion: "SEND_QUESTION",
     sendContact: "SEND_CONTACT",
     free: "FREE"
+}
+
+export const user_pages = {
+    home: "HOME_PAGE",
+    search: "SEARCH",
+    adding: "ADDING_PRODUCT",
+    question: "SEND_QUESTION",
+    cart: "PRODUCTS_ON_CART"
 }
