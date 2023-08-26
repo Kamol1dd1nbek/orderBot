@@ -13,6 +13,7 @@ import { deletter } from './helpers/messageDeletter.helper';
 import { user_pages } from './enums/menus.enum';
 import { QuestionService } from './question/question.service';
 import { addToKesh, clearKesh } from './helpers';
+import { mainBtnMaker } from './helpers/main-button-maker.helper';
 @errorHandler
 @Update()
 export class AppService {
@@ -25,11 +26,12 @@ export class AppService {
   //START
   @Start()
   async start(@Ctx() ctx: any) {
+    clearKesh(ctx);
     ctx.session.action = actions.set_language;
     ctx.session.kesh = [];
     ctx.session.menu = null;
 
-    await ctx.telegram.pinChatMessage(ctx.chat.id, ctx.message.message_id);
+    // await ctx.telegram.pinChatMessage(ctx.chat.id, ctx.message.message_id);
     const salomlashish = `
 🇺🇿 Assalomu aleykum, Men Insonlar o'rtasida mahsulotlarni oson sotish va sotib olishga yordamlashuvchi botman!
 Iltimos tilni tanlang:
@@ -45,85 +47,105 @@ Please select a language:
       languages.en,
       languages.ru,
     ]).resize();
+
+    addToKesh(ctx, ctx.message.message_id);
+
     const message = await ctx.reply(salomlashish, languagesButton);
+
     addToKesh(ctx, message.message_id);
-    clearKesh(ctx);
-    console.log(ctx.session.kesh);
   }
 
   async authorization(ctx: any) {
-    console.log(ctx.session.user);
     const id = ctx.update.message.from.id + '';
-    const mainButtons = Markup.keyboard([
-      [main.home, main.search, main.add, main.question, main.cart],
-    ]).resize();
+
+    const mainButtons = await mainBtnMaker(1);
+
     if (ctx.session.user) {
-      ctx.telegram.sendMessage(
-        ctx.chat.id,
+      const m_id = await ctx.reply(
         asistants.welcome[ctx.session.language],
         mainButtons,
       );
+      clearKesh(ctx);
+      addToKesh(ctx, m_id.message_id);
     } else {
       const user = await this.userService.findOne(id);
-      console.log('lan', ctx.session.language);
       if (user) {
         ctx.session.user = user;
-        ctx.telegram.sendMessage(
-          ctx.chat.id,
+        const m_id = await ctx.reply(
           asistants.welcome[ctx.session.language],
           mainButtons,
         );
+        clearKesh(ctx);
+        addToKesh(ctx, m_id.message_id);
       } else {
-        console.log(2);
+        ctx.session.action = actions.register;
         const keyboard = Markup.keyboard([
-          keyboards.register[ctx.session.language]
+          keyboards.register[ctx.session.language],
         ])
           .resize()
           .oneTime();
-        ctx.session.action = actions.register;
-        ctx.reply(asistants.welcome[ctx.session.language], keyboard);
+
+        const m_id = await ctx.reply(
+          asistants.welcome[ctx.session.language],
+          keyboard,
+        );
+        clearKesh(ctx);
+        addToKesh(ctx, m_id.message_id);
       }
     }
   }
-
+ 
   //REGISTER
   @Hears(keyboards.register)
-  register(@Ctx() ctx: any) {
+  async register(@Ctx() ctx: any) {
+    addToKesh(ctx, ctx.message.message_id);
     const keyboard = Markup.keyboard([
       Markup.button.contactRequest(keyboards.contact[ctx.session.language]),
     ])
       .resize()
       .oneTime();
     ctx.session.action = actions.sendContact;
-    ctx.reply(asistants.toPhoneNumber[ctx.session.language], keyboard);
+    const msg = await ctx.reply(
+      asistants.toPhoneNumber[ctx.session.language],
+      keyboard,
+    );
+    addToKesh(ctx, msg.message_id);
   }
 
   //ON CONTACT
-  // @On('contact')
-  // async contact(@Ctx() ctx: any) {
-  //   const phoneNumber = ctx.update.message.contact.phone_number;
-  //   const user = ctx.update.message.from;
-  //   const newUser = await this.userService.create({
-  //     tg_id: user.id,
-  //     first_name: user.first_name,
-  //     last_name: user.last_name,
-  //     phone_number: phoneNumber,
-  //     is_bot: user.is_bot,
-  //     phone: phoneNumber,
-  //     username: user.username,
-  //   });
+  @On('contact')
+  async contact(@Ctx() ctx: any) {
+    addToKesh(ctx, ctx.message.message_id);
+    const phoneNumber = ctx.update.message.contact.phone_number;
+    const user = ctx.update.message.from;
 
-  //   const mainButtons = Markup.keyboard([
-  //     [main.home, main.search, main.add, main.question, main.cart],
-  //   ]).resize();
+    const newUser = await this.userService.create({
+      tg_id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      phone_number: phoneNumber,
+      is_bot: user.is_bot,
+      phone: phoneNumber,
+      username: user.username,
+    });
 
-  //   if (isAdmin(user.id)) {
-  //     return this.adminService.start(ctx);
-  //   }
-  //   ctx.reply(asistants.tabrikForLogin[ctx.session.language], mainButtons);
-  //   ctx.session.action = actions.free;
-  //   ctx.session.user = newUser;
-  // }
+    const mainButtons = Markup.keyboard([
+      [main.home, main.search, main.add, main.question, main.cart],
+    ]).resize();
+
+    if (isAdmin(user.id)) {
+      return this.adminService.start(ctx);
+    }
+    const msg = await ctx.reply(
+      asistants.tabrikForLogin[ctx.session.language],
+      mainButtons,
+    );
+    clearKesh(ctx);
+    addToKesh(ctx, msg.message_id);
+
+    ctx.session.action = actions.free;
+    ctx.session.user = newUser;
+  }
 
   //   //ON LOCATION
   // @On('location')
@@ -183,109 +205,111 @@ Please select a language:
 
   @On('message')
   async message(@Ctx() ctx: any) {
-    console.log("hbhjb");
-    
-  //   let message;
-  //   switch (ctx.session.action) {
-  //     case actions.register:
-  //       message = ctx.message.text ? ctx.message.text : null;
-  //       if ( 
-  //         message === null ||
-  //         message !== keyboards.register[ctx.session.language] ||
-  //         message !== keyboards.register[ctx.session.language]
-  //       ) {
-  //         ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-  //       }
-  //       return;
+    let msg;
+    switch (ctx.session.action) {
+      case actions.register:
+        msg = ctx.message.text ? ctx.message.text : null;
+        if (
+          msg === null ||
+          msg !== keyboards.register[ctx.session.language] ||
+          msg !== keyboards.register[ctx.session.language]
+        ) {
+          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+        }
+        return;
+      case actions.sendContact:
+        msg = ctx.message.contact ? ctx.message.contact : null;
+        if (msg === null) {
+          ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+        }
+        return;
 
-  //     case actions.sendContact:
-  //       message = ctx.message.contact ? ctx.message.contact : null;
-  //       if (message === null) {
-  //         ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-  //       }
-  //       return;
+      case actions.set_language:
+        msg = ctx.message.text ? ctx.message.text : null;
 
-  //     case actions.set_language:
-  //       console.log(ctx.session.action);
+        if (msg === null) {
+          await ctx.telegram.deleteMessage(
+            ctx.message.chat.id,
+            ctx.message.message_id,
+          );
+          return;
+        }
+        switch (msg) {
+          case languages.uz:
+            ctx.session.language = 0;
+            addToKesh(ctx, ctx.message.message_id);
+            ctx.session.action = actions.authorization;
+            return this.authorization(ctx);
 
-  //       message = ctx.message.text ? ctx.message.text : null;
-  //       if (message === null) {
-  //         await ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-  //         return;
-  //       }
-  //       switch (message) {
-  //         case languages.uz:
-  //           ctx.session.language = 0;
-  //           ctx.session.action = actions.authorization;
-  //           return this.authorization(ctx);
-  //         case languages.en:
-  //           ctx.session.language = 1;
-  //           ctx.session.action = actions.authorization;
-  //           return this.authorization(ctx);
-  //         case languages.ru:
-  //           ctx.session.language = 2;
-  //           ctx.session.action = actions.authorization;
-  //           return this.authorization(ctx);
-  //         default:
-  //           ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-  //       }
-  //   }
+          case languages.en:
+            ctx.session.language = 1;
+            addToKesh(ctx, ctx.message.message_id);
+            ctx.session.action = actions.authorization;
+            return this.authorization(ctx);
 
-  //   const for_menu = ctx.message.text ? ctx.message.text : null;
-  //   if (for_menu === main.home) {
-  //     ctx.session.page = user_pages.home;
-  //     deletter(ctx);
-  //   }
-  //   if (for_menu === main.search) {
-  //     ctx.session.page = user_pages.search;
-  //     deletter(ctx);
-  //   }
-  //   if (for_menu === main.add) {
-  //     ctx.session.page = user_pages.adding;
-  //     deletter(ctx);
-  //   }
-  //   if (
-  //     for_menu === main.question ||
-  //     for_menu === keyboards.support[0] ||
-  //     for_menu === keyboards.support[1] ||
-  //     for_menu === keyboards.support[2]
-  //   ) {
-  //     ctx.session.page = user_pages.question;
-  //     ctx.reply(asistants.beforeQuestion[ctx.session.language]);
-  //     deletter(ctx);
-  //   }
-  //   if (for_menu === main.cart) {
-  //     ctx.session.page = user_pages.cart;
-  //     deletter(ctx);
-  //   }
+          case languages.ru:
+            ctx.session.language = 2;
+            addToKesh(ctx, ctx.message.message_id);
+            ctx.session.action = actions.authorization;
+            return this.authorization(ctx);
+          default:
+            ctx.telegram.deleteMessage(
+              ctx.message.chat.id,
+              ctx.message.message_id,
+            );
+        }
+    }
 
-  //   switch (ctx.session.page) {
-  //     case user_pages.home:
-  //       ctx.reply('Home1');
-  //       return;
-  //     case user_pages.search:
-  //       ctx.reply('Search');
-  //       return;
-  //     case user_pages.adding:
-  //       ctx.reply('Add');
-  //       return;
-  //     case user_pages.question:
-  //       await this.questionService.create({
-  //         tg_id: ctx.message.from.id,
-  //         message: ctx.message.text,
-  //       });
-  //       return;
-  //     case user_pages.cart:
-  //       ctx.reply('Cart');
-  //       return;
-  //   }
-  //   if (
-  //     ctx.session.menu === menus.addTitle ||
-  //     ctx.session.menu === menus.addDescription ||
-  //     ctx.session.menu === menus.addPhoto ||
-  //     ctx.session.menu === menus.addPrice
-  //   ) {
-  //     return this.adminService.message(ctx);
-  //   }
+    const for_menu = ctx.message.text ? ctx.message.text : null;
+    if (for_menu === main.home) {
+      ctx.session.page = user_pages.home;
+      deletter(ctx);
+    }
+    if (for_menu === main.search) {
+      ctx.session.page = user_pages.search;
+      deletter(ctx);
+    }
+    if (for_menu === main.add) {
+      ctx.session.page = user_pages.adding;
+      deletter(ctx);
+    }
+    if (for_menu === main.question) {
+      ctx.session.page = user_pages.question;
+      deletter(ctx); 
+    }
+    if (for_menu === main.cart) {
+      ctx.session.page = user_pages.cart;
+      deletter(ctx);
+    }
+
+    switch (ctx.session.page) {
+      case user_pages.home:
+        ctx.reply("Home", await mainBtnMaker(1));
+        return;
+      case user_pages.search:
+        ctx.reply('Search', await mainBtnMaker(2));
+        return;
+      case user_pages.adding:
+        ctx.reply('Add', await mainBtnMaker(3));
+        return;
+      case user_pages.question:
+      ctx.reply(asistants.beforeQuestion[ctx.session.language], await mainBtnMaker(4));
+        await this.questionService.create({
+          tg_id: ctx.message.from.id,
+          message: ctx.message.text,
+        });
+        return;
+      case user_pages.cart:
+        ctx.reply('Cart', await mainBtnMaker(5));
+        return;
+    }
+    if (
+      ctx.session.menu === menus.addTitle ||
+      ctx.session.menu === menus.addDescription ||
+      ctx.session.menu === menus.addPhoto ||
+      ctx.session.menu === menus.addPrice
+    ) {
+      return this.adminService.message(ctx);
+    }
   }
 }

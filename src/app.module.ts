@@ -14,12 +14,22 @@ import { QuestionModule } from './question/question.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: ".env",
-      isGlobal: true
+      envFilePath: '.env',
+      isGlobal: true,
     }),
     TelegrafModule.forRoot({
       token: process.env.BOT_TOKEN,
-      middlewares: [session()],
+      middlewares: [
+        session(),
+        (ctx: any, next: any) => {
+          if (
+            +(new Date().getTime() / 1000).toFixed(0) - 3 >
+            ctx.update.message.date
+          )
+            return;
+          next();
+        },
+      ],
     }),
     MongooseModule.forRoot(process.env.DB_URI),
     UserModule,
@@ -27,7 +37,7 @@ import { QuestionModule } from './question/question.module';
     CategoryModule,
     ProductModule,
     QuestionModule,
-    QuestionChatModule
+    QuestionChatModule,
   ],
   providers: [AppService],
 })
