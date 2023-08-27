@@ -16,8 +16,8 @@ export class AdminService {
   constructor( private readonly productService: ProductService,
     private readonly userService: UserService) {}
   start(ctx: any) {
-    const keyboard = Markup.keyboard([[main.home, main.search, main.add, main.question, main.hamburger]]).resize();
-    ctx.reply(admin_asistants.salomWithAdmin[ctx.session.language], keyboard);
+    // const keyboard = Markup.keyboard([[main.home, main.search, main.add, main.question, main.hamburger]]).resize();
+    // ctx.reply(admin_asistants.salomWithAdmin[ctx.session.language], keyboard);
     deletter(ctx);
   }
 

@@ -1,5 +1,12 @@
-import { Context } from "telegraf";
+import { Context } from 'telegraf';
 
-export function deletter(ctx: Context) {
-    ctx.telegram.deleteMessage(ctx.message.chat.id, ctx.message.message_id);
+export async function deletter(ctx: Context) {
+  try {
+    await ctx.telegram.deleteMessage(
+      ctx.message.chat.id,
+      ctx.message.message_id,
+    );
+  } catch (error) {
+    console.log(error.message);
+  }
 }

@@ -4,4 +4,5 @@ export class CreateProductDto {
     photo_id: string;
     price: number;
     author_id: string;
+    is_checked: boolean;
 }

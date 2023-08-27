@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { QuestionChatService } from './question_chat.service';
 import { QuestionChatController } from './question_chat.controller';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -11,7 +11,7 @@ import {
   imports: [
     MongooseModule.forFeature([
       { name: QuestionChat.name, schema: QuestionChatSchema },
-    ]),
+    ])
   ],
   controllers: [QuestionChatController],
   providers: [QuestionChatService],

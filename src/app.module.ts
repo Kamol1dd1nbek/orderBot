@@ -9,7 +9,6 @@ import { CategoryModule } from './category/category.module';
 import { session } from 'telegraf';
 import { ProductModule } from './product/product.module';
 import { QuestionChatModule } from './question_chat/question_chat.module';
-import { QuestionModule } from './question/question.module';
 
 @Module({
   imports: [
@@ -36,7 +35,6 @@ import { QuestionModule } from './question/question.module';
     AdminModule,
     CategoryModule,
     ProductModule,
-    QuestionModule,
     QuestionChatModule,
   ],
   providers: [AppService],

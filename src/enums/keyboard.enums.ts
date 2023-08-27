@@ -16,11 +16,11 @@ export const admin_keyboards = {
 }
 
 export const main = {
-    home: "🏠",
-    search: "🔍",
-    add: "➕",
-    question: "❓",
-    cart: "🛒",
+    home: ["🏠", "[ 🏠 ]"],
+    search: ["🔍", "[ 🔍 ]"],
+    add: ["➕", "[ ➕ ]"],
+    question: ["❓", "[ ❓ ]"],
+    cart: ["🛒", "[ 🛒 ]"],
     log: "📜",
     hamburger: "🍔"
 }

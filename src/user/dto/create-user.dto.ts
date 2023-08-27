@@ -6,4 +6,5 @@ export class CreateUserDto {
     username: string;
     phone: string;
     is_bot: boolean;
+    language_code: number;
 }

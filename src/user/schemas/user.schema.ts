@@ -39,6 +39,11 @@ export class User {
         required: true
     })
     phone: string;
+
+    @Prop({
+        type: String,
+    })
+    language_code: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -13,7 +13,6 @@ export default function errorHandler<T extends { new (...args: any[]): {} }>(
             try {
               return await originalMethod.apply(this, args);
             } catch (error: any) {
-              
               const ctx = args[0];
               ctx.telegram
                 .sendMessage(

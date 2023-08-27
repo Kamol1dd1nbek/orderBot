@@ -41,6 +41,12 @@ export class Product {
         ref: "Category"
     })
     category_id: Types.ObjectId;
+
+    @Prop({
+        type: Boolean,
+        required: true
+    })
+    is_checked: boolean;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

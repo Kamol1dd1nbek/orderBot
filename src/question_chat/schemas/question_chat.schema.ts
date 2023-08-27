@@ -1,5 +1,6 @@
 import { Schema, SchemaFactory, Prop } from "@nestjs/mongoose";
 import { HydratedDocument, Types } from "mongoose";
+import { CreateMessage } from "../dto/create-message.dto";
 
 export type QuestionChatDocument = HydratedDocument<QuestionChat>;
 
@@ -17,10 +18,12 @@ export class QuestionChat {
     })
     user_id: string;
 
+
     @Prop({
-        type: [Types.ObjectId]
+        type: [Object],
+        default: []
     })
-    messages: [Types.ObjectId];
+    messages: [CreateMessage]; 
 }
 
 export const QuestionChatSchema = SchemaFactory.createForClass(QuestionChat);
